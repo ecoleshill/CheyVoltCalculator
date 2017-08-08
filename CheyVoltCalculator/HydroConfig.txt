@@ -1,0 +1,16 @@
+#Electricity Rates
+7am-11am,0.132
+11am-5pm,0.18
+5pm-7pm,0.132
+7pm-7am,0.087
+#end
+
+#Other Rates
+Delivery Rate,0.0141
+RTSR – Network,0.0079
+RTSR – Line & Connection Charges,0.0059
+Low Voltage Rate Adder,0.0002
+Wholesale Market Service Charge,0.0044
+Rural and Remote Rate Protection,0.0013
+Debt Retirement Charge (DRC),0.007
+#end
