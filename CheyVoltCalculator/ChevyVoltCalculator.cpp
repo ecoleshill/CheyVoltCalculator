@@ -10,8 +10,9 @@ Purpose:	This file contains the functionality for the Chevy Volt Calculator.  De
 int main(char argc, char *argv)
 {
 	LoadCfg();
-
 	LoadTelem("chargingHistory.txt");
+	RunCalcs();
+
 	return 1;
 }
 
@@ -45,9 +46,12 @@ bool LoadCfg()
 			{
 				//parse the data and push it onto the MyeRates vector space
 				int Loc = ReadLine.find('-');
-				eRate.StartTime = ReadLine.substr(0, Loc);
+				string tmp = ReadLine.substr(0, Loc);
+				eRate.StartTime = Get24HrTime(tmp);
+
 				int Loc2 = ReadLine.find(',');
-				eRate.EndTime = ReadLine.substr(Loc+1, (Loc2 - Loc)-1);
+				tmp = ReadLine.substr(Loc+1, (Loc2 - Loc)-1);
+				eRate.EndTime = Get24HrTime(tmp);
 				eRate.Rate = stod(ReadLine.substr(Loc2 + 1, ReadLine.length() - Loc2));
 				MyeRates.push_back(eRate);
 				getline(ifs, ReadLine);
@@ -148,6 +152,57 @@ bool LoadTelem(string filename)
 	return true;
 }
 
+//This function performs all the calculations w.r.t. the data and rates loaded from the file
+//Output:  ASCII txt file containing the results
+void RunCalcs()
+{
+	string filename;							//The output filename
+	double RateToUse;
+
+	//determine the current date and time so a filename can be generated
+	time_t rawTime;
+	struct tm* timeInfo = new tm();
+
+	time(&rawTime);
+	localtime_s(timeInfo, &rawTime);
+
+	filename = to_string(timeInfo->tm_year + 1900) + to_string(timeInfo->tm_mon + 1) + to_string(timeInfo->tm_mday) + ".txt";
+	
+	ofstream ofs(filename, ofstream::out);
+
+	//Loop through the downloaded OnStar history and perform the calculations
+	for (size_t x = 0; x < MyHistory.size(); x++)
+	{
+		//Check to see if a weekend
+		if ((MyHistory[x].DateTime.tm_wday == 0) || (MyHistory[x].DateTime.tm_wday == 6))
+		{
+			RateToUse = GetRate("2300");			//use evening rate for weekend
+		}
+		else
+		{
+			string timeStr = to_string(MyHistory[x].DateTime.tm_hour);
+
+			//12 noon is 00 hrs - need to handle this as special case
+			if (timeStr == "0")
+				timeStr = "12";
+
+			string min = to_string(MyHistory[x].DateTime.tm_min);
+			
+			//Need to make sure the minutes are always at least 2 characters wide
+			if (min.length() == 1)
+				min = "0" + min;
+
+			timeStr += min;
+			RateToUse = GetRate(timeStr);
+		}
+		ofs << "Rate: " + to_string(RateToUse) << endl;
+	}
+
+
+	ofs.close();
+}
+
+//This function returns a clean string - removing all the extra characters from the read
 string ClearString(string strLine)
 {
 	string newString;
@@ -159,4 +214,51 @@ string ClearString(string strLine)
 	}
 
 	return newString;
+}
+
+//This function converts the a time string into a 24hr time int value
+int Get24HrTime(string Time)
+{
+	int TheTime = 0;
+
+	int index = Time.find('m');			//Time with be AM or PM, so find the 'M' as the common element
+	if (index < 0)
+		index = Time.find('M');
+	
+	index -= 1;							//The location of the AM/PM starting point
+
+	string timeValue = Time.substr(0, Time.length() - (index-1));
+	TheTime = atoi(Time.c_str());
+
+	if ((Time[index] == 'P') || (Time[index] == 'p'))
+		TheTime += 12;
+
+	TheTime = TheTime * 100;
+
+	return TheTime;
+}
+
+//This function returns the charge rate to apply /kwhr
+//Input:  string containing HHMM
+//Output: the kwhr rate for that time period
+double GetRate(string Time)
+{
+	int index = 0;
+	int TheTime = atoi(Time.c_str());
+
+	for (size_t x = 0; x < MyeRates.size(); x++)
+	{
+		if (MyeRates[x].StartTime < MyeRates[x].EndTime)
+		{
+			if ((TheTime >= MyeRates[x].StartTime) && (TheTime < MyeRates[x].EndTime))
+				return MyeRates[x].Rate;
+		}
+		else		//Need to handle the special case when the time span goes over midnight
+		{
+			if (((TheTime >= MyeRates[x].StartTime) && (TheTime < 2400)) || ((TheTime > 0) && (TheTime < MyeRates[x].EndTime)))
+				return MyeRates[x].Rate;
+		}
+	}
+
+	return index;
 }

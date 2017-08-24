@@ -25,8 +25,8 @@ struct DeliveryRates
 //This structure defines all the different rate periods
 struct ElectricityRates
 {
-	string StartTime;			//Beginning of the rate period
-	string EndTime;				//End of the rate period
+	int StartTime;			//Beginning of the rate period
+	int EndTime;				//End of the rate period
 	double Rate;				//The rate for the period
 };
 
@@ -47,7 +47,11 @@ vector <ChargeHistory> MyHistory;		//The vector space containing all the charge 
 bool LoadCfg();							//This function loads the default configuration file
 bool LoadTelem(string filename);			//This function loads the telemetry file into memory
 
+void RunCalcs();						//This function runs the volt calculations and writes the results to the output data file
+
 //Supporting Functions
 string ClearString(string strLine);		//This function removes all \ and " characters from the string
+int Get24HrTime(string Time);			//This function converts the string to a 24hr time integer
+double GetRate(string Time);				//This function returns the rate for a specific time
 
 #endif
