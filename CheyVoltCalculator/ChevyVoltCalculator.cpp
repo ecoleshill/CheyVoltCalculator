@@ -133,7 +133,7 @@ bool LoadTelem(string filename)
 			mktime(&NewCharge.DateTime);
 
 			result = ReadLine.find("Full");
-			if (result == 0)
+			if (result == -1)
 			{
 				result = ReadLine.find("Partial");
 				NewCharge.ChargeResult = "Partial";
@@ -193,6 +193,13 @@ void RunCalcs()
 				min = "0" + min;
 
 			timeStr += min;
+
+			//Special case to handle a plugin with a delayed charge to 7pm for the lower rate
+			//If a partial charge, charge a correct rate, if a full charge push time to 1900hrs
+			int TheTime = atoi(timeStr.c_str());
+			if ((TheTime > 1600) && (TheTime < 1900) && (MyHistory[x].ChargeResult == "Full"))
+				timeStr = "1900";
+
 			RateToUse = GetRate(timeStr);
 		}
 		ofs << "Rate: " + to_string(RateToUse) << endl;
