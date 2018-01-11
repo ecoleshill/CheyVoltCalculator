@@ -68,6 +68,7 @@ bool LoadCfg()
 				int Loc = ReadLine.find(',');
 				extrRates.Name = ReadLine.substr(0, Loc);
 				extrRates.Rate = stod(ReadLine.substr(Loc+1, ReadLine.length() - Loc));
+				extrRates.Total = 0;		//init the running total for this extra rate to zero
 				MyDelivery.push_back(extrRates);
 				getline(ifs, ReadLine);
 			}
@@ -158,6 +159,8 @@ void RunCalcs()
 {
 	string filename;							//The output filename
 	double RateToUse;
+	double TotalElec = 0;						//Total amount of electricity used
+	double TotalElecCost = 0;					//Total sum of electricity cost based on rate used
 
 	//determine the current date and time so a filename can be generated
 	time_t rawTime;
@@ -169,6 +172,13 @@ void RunCalcs()
 	filename = to_string(timeInfo->tm_year + 1900) + to_string(timeInfo->tm_mon + 1) + to_string(timeInfo->tm_mday) + ".txt";
 	
 	ofstream ofs(filename, ofstream::out);
+
+	//Setup the header
+	ofs << "Charge Start, Charge Result, KwHr, Rate, Cost of Elec, ";
+	for (size_t i = 0; i < MyDelivery.size(); i++)
+		ofs << MyDelivery[i].Name << ",";
+	
+	ofs << std::endl;
 
 	//Loop through the downloaded OnStar history and perform the calculations
 	for (size_t x = 0; x < MyHistory.size(); x++)
@@ -202,9 +212,34 @@ void RunCalcs()
 
 			RateToUse = GetRate(timeStr);
 		}
-		ofs << "Rate: " + to_string(RateToUse) << endl;
+		
+		//Start writing the output file for this record
+		char buffer[80];
+		strftime(buffer, 80, "%Y-%m-%d %H:%M:%S", &MyHistory[x].DateTime);
+		ofs << buffer << ",";
+		ofs << MyHistory[x].ChargeResult << ",";
+		ofs << MyHistory[x].KwHr << ",";
+		ofs << RateToUse << ",";
+
+		//Calculate the cost of the electricity
+		TotalElec += MyHistory[x].KwHr;
+		TotalElecCost += MyHistory[x].KwHr * RateToUse;
+		ofs << MyHistory[x].KwHr * RateToUse << ", ";
+
+		//Loop through all the delivery rates and print them out.
+		for (size_t i = 0; i < MyDelivery.size(); i++)
+		{
+			ofs << MyHistory[x].KwHr * MyDelivery[i].Rate << ",";
+			MyDelivery[i].Total += MyHistory[x].KwHr * MyDelivery[i].Rate;
+		}
+		ofs << endl;
 	}
 
+	//Print out the totals
+	ofs << "Total Electricity Use:  " << TotalElec << std::endl;
+	ofs << "Total Electricity Cost: $" << TotalElecCost << std::endl;
+	for (size_t i = 0; i < MyDelivery.size(); i++)
+		ofs << MyDelivery[i].Name << " Total: " << MyDelivery[i].Total << std::endl;
 
 	ofs.close();
 }

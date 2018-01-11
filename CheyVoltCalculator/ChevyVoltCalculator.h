@@ -20,6 +20,7 @@ struct DeliveryRates
 {
 	string Name;				//The name of the hydro rate
 	double Rate;				//The charge rate per kw/hr
+	double Total;				//Running total of all calculated rates for the givin month
 };
 
 //This structure defines all the different rate periods
@@ -52,6 +53,6 @@ void RunCalcs();						//This function runs the volt calculations and writes the 
 //Supporting Functions
 string ClearString(string strLine);		//This function removes all \ and " characters from the string
 int Get24HrTime(string Time);			//This function converts the string to a 24hr time integer
-double GetRate(string Time);				//This function returns the rate for a specific time
+double GetRate(string Time);			//This function returns the rate for a specific time
 
 #endif
