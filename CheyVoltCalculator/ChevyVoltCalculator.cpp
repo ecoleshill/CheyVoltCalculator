@@ -7,10 +7,17 @@ Purpose:	This file contains the functionality for the Chevy Volt Calculator.  De
 *****************************************************************************************/
 #include "ChevyVoltCalculator.h"
 
-int main(char argc, char *argv)
+int main(char argc, char *argv[])
 {
+	//validate there is at least 1 command line argument provided
+	if (argc != 2) {
+		std::cout << "ERROR:   In correct number of command line arguments" << std::endl;
+		std::cout << "USAGE:  >ChevyVoltCalculator OnStar_Telem_Filename" << std::endl;
+		return -1;		//terminate the program if incorrect input detected
+	}
+
 	LoadCfg();
-	LoadTelem("chargingHistory.txt");
+	LoadTelem(argv[1]);
 	RunCalcs();
 
 	return 1;
